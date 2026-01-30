@@ -14,16 +14,42 @@ import { Analytics } from './components/Analytics';
 import { Users } from './components/Users';
 import { Settings } from './components/Settings';
 import { Help } from './components/Help';
+import { Login } from './components/Login';
+import { AdminPanel } from './components/AdminPanel';
 import { Menu } from 'lucide-react';
 
 const App: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'staff'>('admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('home'); 
 
+  const handleLogin = (role: 'admin' | 'staff') => {
+    setUserRole(role);
+    setIsLoggedIn(true);
+    setActiveView('home');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setIsSidebarOpen(false);
+  };
+
   const handleNavigate = (view: string) => {
+    // Basic RBAC Guard
+    const adminOnlyViews = ['analytics', 'users', 'settings', 'admin-panel', 'finance'];
+    if (userRole === 'staff' && adminOnlyViews.includes(view)) {
+      setActiveView('home');
+      return;
+    }
+    
     setActiveView(view);
     setIsSidebarOpen(false);
   };
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden font-sans text-slate-800">
@@ -41,7 +67,12 @@ const App: React.FC = () => {
         lg:relative lg:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <Sidebar activeView={activeView} onNavigate={handleNavigate} />
+        <Sidebar 
+          activeView={activeView} 
+          onNavigate={handleNavigate} 
+          onLogout={handleLogout}
+          userRole={userRole} 
+        />
       </div>
 
       {/* Main Content */}
@@ -57,6 +88,15 @@ const App: React.FC = () => {
                  <span className="font-bold uppercase tracking-wide">EASY CEBU</span>
             </div>
             <Home />
+          </div>
+        )}
+
+        {activeView === 'admin-panel' && (
+          <div className="flex-1 h-full flex flex-col">
+            <AdminPanel 
+              onBack={() => setActiveView('home')} 
+              onNavigateToUsers={() => setActiveView('users')}
+            />
           </div>
         )}
 
@@ -199,7 +239,7 @@ const App: React.FC = () => {
         )}
 
         {/* Fallback */}
-        {!['home', 'new-product', 'checkout', 'orders', 'products', 'smart-assistant', 'online-catalog', 'coupons', 'customers', 'transactions', 'analytics', 'users', 'settings', 'help'].includes(activeView) && (
+        {!['home', 'admin-panel', 'new-product', 'checkout', 'orders', 'products', 'smart-assistant', 'online-catalog', 'coupons', 'customers', 'transactions', 'analytics', 'users', 'settings', 'help'].includes(activeView) && (
            <div className="flex-1 flex items-center justify-center flex-col">
               <div className="lg:hidden w-full bg-kyte-dark p-4 text-white flex items-center gap-3 absolute top-0">
                   <button onClick={() => setIsSidebarOpen(true)}>
